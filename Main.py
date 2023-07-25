@@ -1,10 +1,11 @@
-import sys
 import os
 import requests
+import sys
+import hashlib
+import shutil
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
-from colorama import Fore, Style  # Import colorama library
-from Config.Update import check_for_updates
+from colorama import Fore, Style
 
 def read_payloads_from_file(file_path):
     try:
@@ -206,9 +207,8 @@ def main():
             print("2. DOM-based XSS (via Selenium)")
             print("3. SQL Injection (via requests)")
             print("4. Remote Code Execution (via requests)")
-            print("5. Check for Updates")
-            print("6. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, 5, or 6): ")
+            print("5. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, or 5): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -233,17 +233,15 @@ def main():
                 method = input("Enter your choice (1 or 2): ")
                 test_remote_code_execution(url, rce_payloads, method)
             elif choice == '5':
-                check_for_updates()
-            elif choice == '6':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, or 6).")
+                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
 
     except FileNotFoundError:
         print("One or more payload files not found.")
     except KeyboardInterrupt:
-        print("\nVulnScanX terminated by the user. Goodbye!")
+        print("\nVulnScanX terminated by user. Goodbye!")
     except Exception as e:
         print(f"Error: {e}")
 
