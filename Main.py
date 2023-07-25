@@ -28,7 +28,16 @@ def read_banner():
 def display_banner():
     banner = read_banner()
     if banner:
-        print(banner)
+        print(Fore.RED + banner + Style.RESET_ALL)
+
+def print_success(message):
+    print(Fore.GREEN + message + Style.RESET_ALL)
+
+def print_warning(message):
+    print(Fore.YELLOW + message + Style.RESET_ALL)
+
+def print_error(message):
+    print(Fore.RED + message + Style.RESET_ALL)
 
 def test_reflected_xss_payloads(url, payloads):
     try:
@@ -39,15 +48,15 @@ def test_reflected_xss_payloads(url, payloads):
                 response = requests.post(url, data=data)
 
                 if 'XSS' in response.text:
-                    print(f"Payload: {payload} - Reflected XSS FOUND! (via requests)")
+                    print_success(f"Payload: {payload} - Reflected XSS FOUND! (via requests)")
                 else:
-                    print(f"Payload: {payload} - Status code: {response.status_code}")
+                    print_warning(f"Payload: {payload} - Status code: {response.status_code}")
 
             except requests.exceptions.RequestException as e:
-                print(f"Error (requests): {e}")
+                print_error(f"Error (requests): {e}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print_error(f"Error: {e}")
 
 def test_dom_based_xss_payloads(url, payloads, browser):
     try:
@@ -73,21 +82,21 @@ def test_dom_based_xss_payloads(url, payloads, browser):
                     try:
                         # Check if the payload executed successfully
                         if 'XSS' in driver.page_source:
-                            print(f"Payload: {payload} - DOM-based XSS FOUND! (via {browser})")
+                            print_success(f"Payload: {payload} - DOM-based XSS FOUND! (via {browser})")
                         else:
-                            print(f"Payload: {payload} - No XSS (via {browser})")
+                            print_warning(f"Payload: {payload} - No XSS (via {browser})")
                     except NoSuchElementException:
                         # If the element with ID 'message' or 'submit' is not found, continue to the next payload
-                        print(f"Payload: {payload} - Element not found (via {browser})")
+                        print_warning(f"Payload: {payload} - Element not found (via {browser})")
 
                 except WebDriverException as e:
-                    print(f"Error ({browser}): {e}")
+                    print_error(f"Error ({browser}): {e}")
 
         else:
-            print("Unsupported browser. Please select a supported browser.")
+            print_error("Unsupported browser. Please select a supported browser.")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print_error(f"Error: {e}")
 
     finally:
         if driver:
@@ -103,12 +112,12 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(f"{url}?username={payload}&password=dummy")
 
                     if 'Login failed' not in response.text:
-                        print(f"Payload: {payload} - SQL Injection FOUND! (Method 1) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection FOUND! (Method 1) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Error (requests): {e}")
+                    print_error(f"Error (requests): {e}")
 
         elif method == '2':
             # Method 2: Injecting into POST form data
@@ -119,12 +128,12 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'Login failed' not in response.text:
-                        print(f"Payload: {payload} - SQL Injection FOUND! (Method 2) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection FOUND! (Method 2) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Error (requests): {e}")
+                    print_error(f"Error (requests): {e}")
 
         elif method == '3':
             # Method 3: Injecting into cookies
@@ -135,18 +144,18 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(url, cookies=cookies)
 
                     if 'Login failed' not in response.text:
-                        print(f"Payload: {payload} - SQL Injection (Method 3) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 3) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 3) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 3) - Status code: {response.status_code}")
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Error (requests): {e}")
+                    print_error(f"Error (requests): {e}")
 
         else:
-            print("Invalid SQL injection method. Please enter either '1', '2', or '3'.")
+            print_error("Invalid SQL injection method. Please enter either '1', '2', or '3'.")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print_error(f"Error: {e}")
 
 
 def test_remote_code_execution(url, payloads, method):
@@ -159,12 +168,12 @@ def test_remote_code_execution(url, payloads, method):
                     response = requests.get(f"{url}?cmd={payload}")
 
                     if 'RCE_SUCCESS' in response.text:
-                        print(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 1)")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 1)")
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Error (requests): {e}")
+                    print_error(f"Error (requests): {e}")
 
         elif method == '2':
             # Method 2: Injecting into POST form data
@@ -175,18 +184,18 @@ def test_remote_code_execution(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'RCE_SUCCESS' in response.text:
-                        print(f"Payload: {payload} - Remote Code Execution FOUND! (Method 2) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 2) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Error (requests): {e}")
+                    print_error(f"Error (requests): {e}")
 
         else:
-            print("Invalid RCE method. Please enter either '1' or '2'.")
+            print_error("Invalid RCE method. Please enter either '1' or '2'.")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print_error(f"Error: {e}")
 
 def main():
     try:
@@ -236,14 +245,14 @@ def main():
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
 
     except FileNotFoundError:
-        print("One or more payload files not found.")
+        print_error("One or more payload files not found.")
     except KeyboardInterrupt:
         print("\nVulnScanX terminated by user. Goodbye!")
     except Exception as e:
-        print(f"Error: {e}")
+        print_error(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
