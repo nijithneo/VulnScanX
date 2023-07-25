@@ -50,7 +50,7 @@ def test_reflected_xss_payloads(url, payloads):
                 if 'XSS' in response.text:
                     print_success(f"Payload: {payload} - Reflected XSS FOUND! (via requests)")
                 else:
-                    print_warning(f"Payload: {payload} - Status code: {response.status_code}")
+                    print_warning(f"Payload: {payload}")
 
             except requests.exceptions.RequestException as e:
                 print_error(f"Error (requests): {e}")
@@ -112,9 +112,9 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(f"{url}?username={payload}&password=dummy")
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 1) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 1)")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 1)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
@@ -128,9 +128,9 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 2) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 2)")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
@@ -144,9 +144,9 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(url, cookies=cookies)
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 3) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 3)")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 3) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 3)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
