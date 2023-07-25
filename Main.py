@@ -166,24 +166,45 @@ def test_sql_injection_payloads(url, payloads, method):
         print(f"Error: {e}")
 
 
-def test_remote_code_execution(url, payloads):
+def test_remote_code_execution(url, payloads, method):
     try:
-        for payload in payloads:
-            payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
-            try:
-                headers = {'User-Agent': payload}
-                response = requests.get(url, headers=headers)
+        if method == '1':
+            # Method 1: Injecting into URL parameters
+            for payload in payloads:
+                payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
+                try:
+                    response = requests.get(f"{url}?cmd={payload}")
 
-                if 'RCE_SUCCESS' in response.text:
-                    print(f"Payload: {payload} - Remote Code Execution FOUND!")
-                else:
-                    print(f"Payload: {payload} - Not Vulnerable to Remote Code Execution")
+                    if 'RCE_SUCCESS' in response.text:
+                        print(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1) - Status code: {response.status_code}")
+                    else:
+                        print(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
 
-            except requests.exceptions.RequestException as e:
-                print(f"Error (requests): {e}")
+                except requests.exceptions.RequestException as e:
+                    print(f"Error (requests): {e}")
+
+        elif method == '2':
+            # Method 2: Injecting into POST form data
+            for payload in payloads:
+                payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
+                try:
+                    data = {'cmd': payload}  # Adjust data fields as per the form
+                    response = requests.post(url, data=data)
+
+                    if 'RCE_SUCCESS' in response.text:
+                        print(f"Payload: {payload} - Remote Code Execution FOUND! (Method 2) - Status code: {response.status_code}")
+                    else:
+                        print(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
+
+                except requests.exceptions.RequestException as e:
+                    print(f"Error (requests): {e}")
+
+        else:
+            print("Invalid RCE method. Please enter either '1' or '2'.")
 
     except Exception as e:
         print(f"Error: {e}")
+
 
 def main():
     try:
