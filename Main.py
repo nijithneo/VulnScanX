@@ -178,7 +178,7 @@ def test_remote_code_execution(url, payloads, method):
                     if 'RCE_SUCCESS' in response.text:
                         print(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1) - Status code: {response.status_code}")
                     else:
-                        print(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
+                        print(f"Payload: {payload} - Not Vulnerable (Method 1)")
 
                 except requests.exceptions.RequestException as e:
                     print(f"Error (requests): {e}")
