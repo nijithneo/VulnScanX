@@ -205,7 +205,6 @@ def test_remote_code_execution(url, payloads, method):
     except Exception as e:
         print(f"Error: {e}")
 
-
 def main():
     try:
         with open('Payloads/PayloadXSS.txt', 'r', encoding='utf-8') as f:
@@ -245,7 +244,11 @@ def main():
                 test_sql_injection_payloads(url, sql_payloads, method)
             elif choice == '4':
                 url = input("Enter the URL where Remote Code Execution payload will be submitted: ")
-                test_remote_code_execution(url, rce_payloads)
+                print("Choose RCE method:")
+                print("1. Injecting into URL parameters")
+                print("2. Injecting into POST form data")
+                method = input("Enter your choice (1 or 2): ")
+                test_remote_code_execution(url, rce_payloads, method)
             elif choice == '5':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
