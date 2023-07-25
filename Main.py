@@ -233,10 +233,7 @@ def main():
                 method = input("Enter your choice (1 or 2): ")
                 test_remote_code_execution(url, rce_payloads, method)
             elif choice == '5':
-                print("Checking for updates...")
-                if check_for_updates():
-                    print("Exiting VulnScanX. Please restart to use the updated version.")
-                    sys.exit(0)
+                check_for_updates()
             elif choice == '6':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
