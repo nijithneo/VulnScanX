@@ -112,7 +112,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(f"{url}?username={payload}&password=dummy")
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection FOUND! (Method 1) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 1) - Status code: {response.status_code}")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 1) - Status code: {response.status_code}")
 
@@ -128,7 +128,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection FOUND! (Method 2) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 2) - Status code: {response.status_code}")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
 
