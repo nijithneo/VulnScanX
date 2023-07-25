@@ -23,6 +23,14 @@ VulnScanX is a versatile and user-friendly command-line application designed to 
 - SQL Injection payloads: Add or modify payloads in 'Payloads/PayloadSQL.txt'.
 - Remote Code Execution payloads: Add or modify payloads in 'Payloads/PayloadRCE.txt'.
 
+## Suggest Features
+
+If you have any suggestions for additional features or improvements, feel free to open an issue or create a pull request on the repository. Your contributions are welcome!
+
+## License
+
+This project is licensed under the [MIT License](https://github.com/neoxxz/VulnScanX/blob/main/LICENSE).
+
 ## Disclaimer
 
 This tool is intended for ethical use only. Always seek proper authorization before conducting security testing on web applications. The developers are not responsible for any unauthorized or illegal usage.
