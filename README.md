@@ -12,7 +12,7 @@ VulnScanX is a versatile and user-friendly command-line application designed to 
 ## Usage
 
 1. Clone the repository: `git clone https://github.com/neoxxz/VulnScanX.git`
-2. Install the required dependencies: `pip install colorama`
+2. Install the required dependencies: `pip install -r requirements.txt`
 3. Customize payload files in the 'Payloads' folder for specific testing needs.
 4. Run the tool: `python Main.py`
 5. Follow the on-screen instructions to select the testing method and provide the target URL.
