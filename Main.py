@@ -198,36 +198,43 @@ def main():
 
         display_banner()
 
-        print("Choose testing method:")
-        print("1. Reflected XSS (via requests)")
-        print("2. DOM-based XSS (via Selenium)")
-        print("3. SQL Injection (via requests)")
-        print("4. Remote Code Execution (via requests)")
-        choice = input("Enter your choice (1, 2, 3, or 4): ")
+        while True:
+            print("Choose testing method:")
+            print("1. Reflected XSS (via requests)")
+            print("2. DOM-based XSS (via Selenium)")
+            print("3. SQL Injection (via requests)")
+            print("4. Remote Code Execution (via requests)")
+            print("5. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, or 5): ")
 
-        if choice == '1':
-            url = input("Enter the URL where Reflected XSS payload will be submitted: ")
-            test_reflected_xss_payloads(url, xss_payloads)
-        elif choice == '2':
-            url = input("Enter the URL where DOM-based XSS payload will be submitted: ")
-            browser = input("Enter the browser you want to use (chrome / firefox): ")
-            test_dom_based_xss_payloads(url, xss_payloads, browser)
-        elif choice == '3':
-            url = input("Enter the URL where SQL Injection payload will be submitted: ")
-            print("Choose SQL injection method:")
-            print("1. Injecting into URL parameters")
-            print("2. Injecting into POST form data")
-            print("3. Injecting into cookies")
-            method = input("Enter your choice (1, 2, or 3): ")
-            test_sql_injection_payloads(url, sql_payloads, method)
-        elif choice == '4':
-            url = input("Enter the URL where Remote Code Execution payload will be submitted: ")
-            test_remote_code_execution(url, rce_payloads)
-        else:
-            print("Invalid choice. Please enter a valid option (1, 2, 3, or 4).")
+            if choice == '1':
+                url = input("Enter the URL where Reflected XSS payload will be submitted: ")
+                test_reflected_xss_payloads(url, xss_payloads)
+            elif choice == '2':
+                url = input("Enter the URL where DOM-based XSS payload will be submitted: ")
+                browser = input("Enter the browser you want to use (chrome / firefox): ")
+                test_dom_based_xss_payloads(url, xss_payloads, browser)
+            elif choice == '3':
+                url = input("Enter the URL where SQL Injection payload will be submitted: ")
+                print("Choose SQL injection method:")
+                print("1. Injecting into URL parameters")
+                print("2. Injecting into POST form data")
+                print("3. Injecting into cookies")
+                method = input("Enter your choice (1, 2, or 3): ")
+                test_sql_injection_payloads(url, sql_payloads, method)
+            elif choice == '4':
+                url = input("Enter the URL where Remote Code Execution payload will be submitted: ")
+                test_remote_code_execution(url, rce_payloads)
+            elif choice == '5':
+                print("Exiting VulnScanX. Goodbye!")
+                sys.exit(0)
+            else:
+                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
 
     except FileNotFoundError:
         print("One or more payload files not found.")
+    except KeyboardInterrupt:
+        print("\nVulnScanX terminated by user. Goodbye!")
     except Exception as e:
         print(f"Error: {e}")
 
