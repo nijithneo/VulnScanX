@@ -1,8 +1,10 @@
+import sys
 import os
 import requests
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 from colorama import Fore, Style  # Import colorama library
+from Config.Update import check_for_updates
 
 def read_payloads_from_file(file_path):
     try:
@@ -13,39 +15,19 @@ def read_payloads_from_file(file_path):
         print(f"File not found: {file_path}")
         return []
 
+def read_banner():
+    try:
+        with open('Config/Banner.txt', 'r', encoding='utf-8') as f:
+            banner = f.read()
+            return banner
+    except FileNotFoundError:
+        print("Banner file (Config/Banner.txt) not found.")
+        return ""
+
 def display_banner():
-    banner = f"""
-{Fore.RED}                      .^?5GB#######BG57^          
-                     J#BP?!~~~~~~~~~!JPBB5~       
-                  ?? :^:!JPGBBGGGBBGPJ~:~Y&#?.    
-                :.!! ~P#BY!^..   ..^75B#5^.?&#!   
-               5@! ^G@5^               ~P@P:.P@J  
-              P@J 7@B^                   ~#&~ Y@Y 
-             ?@5 !@G.    :!?YPPPPPY7~:    :#@^ G@!
-             #@: #@:  :JB#&@&Y!~75@@##G?.  ~@G ~@B
-            :@# ^@G  J@#!.B@^ ^Y: ~@G.7#@?  #&..&@
-            :@# ^@B  7##J~B@! :7. 7@G~Y&B! .#&..&@
-             B@^ B@~   !5B#@@GJ?YB@@#B5~   !@P !@G
-             !@G ^@#:     :~7JJYJ?7~:     ^@&: B@~
-              J@5 ^#&!                    ^J: G@7 
-               ?@G:.Y&B7.               YP  ^#@7  
-            ^~^7&&&Y::?B#GJ!^::::^~7YGY  .^P@P^   
-          7B#G#@G:Y@@P7^^!JPGGGGGGG5J!^^?G&P~     
-       .?#&J: :J##&5~?G#B5J7!~~~~~!7JPB#P?:       
-     .?##J.     ^&@:   .^7J5PGGGGGP5J7^.          
-   .J&#?.     .J##7                               
- :Y&#7.     :J&#?.                                
-J&B7      :Y&B7                                   
-&@7     :5&B!                                     
-:Y&B7.^5&G!                                       
-  :5&#&G!                                         
-{Style.RESET_ALL}
-{'Security Testing Tool for XSS, SQLi, and RCE'}
-{'Author: github.com/neoxxz'}
-"""
-
-    print(banner)
-
+    banner = read_banner()
+    if banner:
+        print(banner)
 
 def test_reflected_xss_payloads(url, payloads):
     try:
@@ -152,7 +134,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(url, cookies=cookies)
 
                     if 'Login failed' not in response.text:
-                        print(f"Payload: {payload} - SQL Injection FOUND! (Method 3) - Status code: {response.status_code}")
+                        print(f"Payload: {payload} - SQL Injection (Method 3) - Status code: {response.status_code}")
                     else:
                         print(f"Payload: {payload} - Not Vulnerable (Method 3) - Status code: {response.status_code}")
 
@@ -224,8 +206,9 @@ def main():
             print("2. DOM-based XSS (via Selenium)")
             print("3. SQL Injection (via requests)")
             print("4. Remote Code Execution (via requests)")
-            print("5. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, or 5): ")
+            print("5. Check for Updates")
+            print("6. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, or 6): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -250,15 +233,20 @@ def main():
                 method = input("Enter your choice (1 or 2): ")
                 test_remote_code_execution(url, rce_payloads, method)
             elif choice == '5':
+                print("Checking for updates...")
+                if check_for_updates():
+                    print("Exiting VulnScanX. Please restart to use the updated version.")
+                    sys.exit(0)
+            elif choice == '6':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
+                print("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, or 6).")
 
     except FileNotFoundError:
         print("One or more payload files not found.")
     except KeyboardInterrupt:
-        print("\nVulnScanX terminated by user. Goodbye!")
+        print("\nVulnScanX terminated by the user. Goodbye!")
     except Exception as e:
         print(f"Error: {e}")
 
