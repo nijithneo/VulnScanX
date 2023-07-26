@@ -50,7 +50,7 @@ def test_reflected_xss_payloads(url, payloads):
                 if 'XSS' in response.text:
                     print_success(f"Payload: {payload} - Reflected XSS FOUND! (via requests)")
                 else:
-                    print_warning(f"Payload: {payload}")
+                    print_warning(f"Payload: {payload} - No XSS (via requests)")
 
             except requests.exceptions.RequestException as e:
                 print_error(f"Error (requests): {e}")
@@ -112,7 +112,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(f"{url}?username={payload}&password=dummy")
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 1)")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 1) - Vulnerable")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 1)")
 
@@ -128,7 +128,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 2)")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 2) - Vulnerable")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 2)")
 
@@ -144,7 +144,7 @@ def test_sql_injection_payloads(url, payloads, method):
                     response = requests.get(url, cookies=cookies)
 
                     if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 3)")
+                        print_success(f"Payload: {payload} - SQL Injection (Method 3) - Vulnerable")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 3)")
 
@@ -157,7 +157,6 @@ def test_sql_injection_payloads(url, payloads, method):
     except Exception as e:
         print_error(f"Error: {e}")
 
-
 def test_remote_code_execution(url, payloads, method):
     try:
         if method == '1':
@@ -168,7 +167,7 @@ def test_remote_code_execution(url, payloads, method):
                     response = requests.get(f"{url}?cmd={payload}")
 
                     if 'RCE_SUCCESS' in response.text:
-                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 1)")
                     else:
                         print_warning(f"Payload: {payload} - Not Vulnerable (Method 1)")
 
@@ -184,9 +183,9 @@ def test_remote_code_execution(url, payloads, method):
                     response = requests.post(url, data=data)
 
                     if 'RCE_SUCCESS' in response.text:
-                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 2) - Status code: {response.status_code}")
+                        print_success(f"Payload: {payload} - Remote Code Execution FOUND! (Method 2)")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2) - Status code: {response.status_code}")
+                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
@@ -197,16 +196,42 @@ def test_remote_code_execution(url, payloads, method):
     except Exception as e:
         print_error(f"Error: {e}")
 
+def test_server_side_template_injection(url, payloads):
+    try:
+        for payload in payloads:
+            payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
+            try:
+                data = {'template': payload}  # Adjust the data field name as per the target application
+                response = requests.post(url, data=data)
+
+                if 'SSTI_SUCCESS' in response.text:
+                    print_success(f"Payload: {payload} - Server-Side Template Injection FOUND!")
+                else:
+                    print_warning(f"Payload: {payload} - Not Vulnerable")
+
+            except requests.exceptions.RequestException as e:
+                print_error(f"Error (requests): {e}")
+
+    except Exception as e:
+        print_error(f"Error: {e}")
+
 def main():
     try:
+        # Load XSS payloads from the file
         with open('Payloads/PayloadXSS.txt', 'r', encoding='utf-8') as f:
             xss_payloads = f.readlines()
 
+        # Load SQL injection payloads from the file
         with open('Payloads/PayloadSQL.txt', 'r', encoding='utf-8') as f:
             sql_payloads = f.readlines()
 
+        # Load Remote Code Execution payloads from the file
         with open('Payloads/PayloadRCE.txt', 'r', encoding='utf-8') as f:
             rce_payloads = f.readlines()
+
+        # Load SSTI payloads from the file
+        with open('Payloads/PayloadSSTI.txt', 'r', encoding='utf-8') as f:
+            ssti_payloads = f.readlines()
 
         display_banner()
 
@@ -216,8 +241,9 @@ def main():
             print("2. DOM-based XSS (via Selenium)")
             print("3. SQL Injection (via requests)")
             print("4. Remote Code Execution (via requests)")
-            print("5. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, or 5): ")
+            print("5. Server-Side Template Injection (via requests)")
+            print("6. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, or 6): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -242,10 +268,13 @@ def main():
                 method = input("Enter your choice (1 or 2): ")
                 test_remote_code_execution(url, rce_payloads, method)
             elif choice == '5':
+                url = input("Enter the URL where SSTI payload will be submitted: ")
+                test_server_side_template_injection(url, ssti_payloads)
+            elif choice == '6':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, or 5).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, or 6).")
 
     except FileNotFoundError:
         print_error("One or more payload files not found.")
