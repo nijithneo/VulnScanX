@@ -215,6 +215,25 @@ def test_server_side_template_injection(url, payloads):
     except Exception as e:
         print_error(f"Error: {e}")
 
+def test_open_redirection_payloads(url, payloads):
+    try:
+        for payload in payloads:
+            payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
+            try:
+                response = requests.get(f"{url}?redirect={payload}", allow_redirects=False)
+
+                if response.status_code == 302 and 'Location' in response.headers:
+                    print_success(f"Payload: {payload} - Open Redirection FOUND!")
+                    print_warning(f"Redirect URL: {response.headers['Location']}")
+                else:
+                    print_warning(f"Payload: {payload} - Not Vulnerable")
+
+            except requests.exceptions.RequestException as e:
+                print_error(f"Error (requests): {e}")
+
+    except Exception as e:
+        print_error(f"Error: {e}")
+
 def main():
     try:
         # Load XSS payloads from the file
@@ -233,6 +252,10 @@ def main():
         with open('Payloads/PayloadSSTI.txt', 'r', encoding='utf-8') as f:
             ssti_payloads = f.readlines()
 
+        # Load Open Redirection payloads from the file
+        with open('Payloads/PayloadOpenRed.txt', 'r', encoding='utf-8') as f:
+            open_redirection_payloads = f.readlines()
+
         display_banner()
 
         while True:
@@ -242,8 +265,9 @@ def main():
             print("3. SQL Injection (via requests)")
             print("4. Remote Code Execution (via requests)")
             print("5. Server-Side Template Injection (via requests)")
-            print("6. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, 5, or 6): ")
+            print("6. Open Redirection (via requests)")
+            print("7. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, or 7): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -271,10 +295,13 @@ def main():
                 url = input("Enter the URL where SSTI payload will be submitted: ")
                 test_server_side_template_injection(url, ssti_payloads)
             elif choice == '6':
+                url = input("Enter the URL where Open Redirection payload will be tested: ")
+                test_open_redirection_payloads(url, open_redirection_payloads)
+            elif choice == '7':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, or 6).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, or 7).")
 
     except FileNotFoundError:
         print_error("One or more payload files not found.")
