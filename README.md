@@ -8,6 +8,7 @@ VulnScanX is a versatile and user-friendly command-line application designed to 
 - DOM-based XSS Testing (via Selenium)
 - SQL Injection Testing (via requests)
 - Remote Code Execution Testing (via requests)
+- Server-Side Template Injection (via requests)
 
 ## Usage
 
