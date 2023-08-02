@@ -1,11 +1,22 @@
 import os
 import requests
+import logging
 import sys
+import threading
 import hashlib
 import shutil
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 from colorama import Fore, Style
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Set up logging
+logging.basicConfig(filename='vulnscanx_results.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 def read_payloads_from_file(file_path):
     try:
@@ -41,22 +52,42 @@ def print_error(message):
 
 def test_reflected_xss_payloads(url, payloads):
     try:
-        for payload in payloads:
-            payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
+        num_threads = 5  # Number of threads to run concurrently (you can adjust this as needed)
+        payloads_per_thread = len(payloads) // num_threads
+
+        def test_payloads_thread(payloads, thread_id):
             try:
-                data = {'message': payload}
-                response = requests.post(url, data=data)
+                start_idx = thread_id * payloads_per_thread
+                end_idx = start_idx + payloads_per_thread if thread_id < num_threads - 1 else len(payloads)
 
-                if 'XSS' in response.text:
-                    print_success(f"Payload: {payload} - Reflected XSS FOUND! (via requests)")
-                else:
-                    print_warning(f"Payload: {payload} - No XSS (via requests)")
+                for i in range(start_idx, end_idx):
+                    payload = payloads[i].strip()
+                    try:
+                        data = {'message': payload}
+                        response = requests.post(url, data=data)
 
-            except requests.exceptions.RequestException as e:
-                print_error(f"Error (requests): {e}")
+                        if 'XSS' in response.text:
+                            print_success(f"URL: {url} - Payload: {payload} - XSS Found(via requests)")
+                        else:
+                            print_warning(f"URL: {url} - Payload: {payload} - No XSS (via requests)")
+
+                    except requests.exceptions.RequestException as e:
+                        print_error(f"Error (requests): {e}")
+
+            except Exception as e:
+                print_error(f"Error in test_payloads_thread: {e}")
+
+        threads = []
+        for i in range(num_threads):
+            thread = threading.Thread(target=test_payloads_thread, args=(payloads, i))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
 
     except Exception as e:
-        print_error(f"Error: {e}")
+        print_error(f"Error in test_reflected_xss_payloads: {e}")
 
 def test_dom_based_xss_payloads(url, payloads, browser):
     try:
@@ -72,25 +103,49 @@ def test_dom_based_xss_payloads(url, payloads, browser):
                 payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
                 try:
                     driver.get(url)
-                    # Execute the payload using JavaScript in the context of the page
-                    driver.execute_script(f"document.getElementById('message').value = '{payload}';")
-                    driver.execute_script("document.getElementById('submit').click();")
+                    wait = WebDriverWait(driver, 10)  # Set a timeout of 10 seconds
 
-                    # Wait for some time to let the page respond (you can adjust the time if needed)
+                    # Try locating the element using different methods
+                    element_methods = [
+                        ("ID", By.ID),
+                        ("Name", By.NAME),
+                        ("Class Name", By.CLASS_NAME),
+                        ("XPath", By.XPATH)
+                    ]
+
+                    element_found = False
+                    for method_name, method in element_methods:
+                        try:
+                            element = wait.until(EC.presence_of_element_located((method, 'message')))
+                            element_found = True
+                            break
+                        except NoSuchElementException:
+                            continue
+
+                    if not element_found:
+                        print_warning(f"Payload: {payload} - Element not found (via {browser})")
+                        continue
+
+                    submit_button = driver.find_element(By.NAME, 'submitbutton')
+                    driver.execute_script("arguments[0].value = arguments[1]", element, payload)
+                    driver.execute_script("arguments[0].click()", submit_button)
+
                     driver.implicitly_wait(5)
 
                     try:
-                        # Check if the payload executed successfully
                         if 'XSS' in driver.page_source:
                             print_success(f"Payload: {payload} - DOM-based XSS FOUND! (via {browser})")
                         else:
                             print_warning(f"Payload: {payload} - No XSS (via {browser})")
                     except NoSuchElementException:
-                        # If the element with ID 'message' or 'submit' is not found, continue to the next payload
                         print_warning(f"Payload: {payload} - Element not found (via {browser})")
+
+                    # Print the page source to analyze the page structure
+                    print(driver.page_source)
 
                 except WebDriverException as e:
                     print_error(f"Error ({browser}): {e}")
+                    break  # Exit the loop if any error occurs
 
         else:
             print_error("Unsupported browser. Please select a supported browser.")
@@ -234,6 +289,47 @@ def test_open_redirection_payloads(url, payloads):
     except Exception as e:
         print_error(f"Error: {e}")
 
+def get_links_from_page(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            links = [urljoin(url, link.get('href')) for link in soup.find_all('a', href=True)]
+            return links
+        else:
+            print_error(f"Failed to get links from page {url}. Status code: {response.status_code}")
+            return []
+    except requests.exceptions.RequestException as e:
+        print_error(f"Error (requests) while getting links from page {url}: {e}")
+        return []
+    
+def crawl_and_test_links(base_url, xss_payloads, sql_payloads, rce_payloads, ssti_payloads, open_redirection_payloads, max_depth=3):
+    visited_urls = set()
+
+    def crawl(url, depth):
+        try:
+            if depth > max_depth or url in visited_urls:
+                return
+
+            visited_urls.add(url)
+            print(f"Crawling: {url}")
+            links = get_links_from_page(url)
+
+            for link in links:
+                test_reflected_xss_payloads(link, xss_payloads)
+                test_dom_based_xss_payloads(link, xss_payloads, browser='chrome')
+                test_sql_injection_payloads(link, sql_payloads, method='1')
+                test_remote_code_execution(link, rce_payloads, method='1')
+                test_open_redirection_payloads(link, open_redirection_payloads)
+                test_server_side_template_injection(link, ssti_payloads)
+
+                crawl(link, depth + 1)
+
+        except Exception as e:
+            print_error(f"Error in crawl function: {e}")
+
+    crawl(base_url, 1)
+
 def main():
     try:
         # Load XSS payloads from the file
@@ -266,8 +362,9 @@ def main():
             print("4. Remote Code Execution (via requests)")
             print("5. Server-Side Template Injection (via requests)")
             print("6. Open Redirection (via requests)")
-            print("7. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, or 7): ")
+            print("7. Crawl and Test All")
+            print("8. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, 7, or 8): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -298,10 +395,13 @@ def main():
                 url = input("Enter the URL where Open Redirection payload will be tested: ")
                 test_open_redirection_payloads(url, open_redirection_payloads)
             elif choice == '7':
+                url = input("Enter the base URL to start crawling and testing: ")
+                crawl_and_test_links(url, xss_payloads, sql_payloads, rce_payloads, ssti_payloads, open_redirection_payloads)
+            elif choice == '8':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, or 7).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, 7, or 8).")
 
     except FileNotFoundError:
         print_error("One or more payload files not found.")
