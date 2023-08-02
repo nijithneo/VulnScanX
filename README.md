@@ -1,4 +1,4 @@
-# VulnScanX v2.0
+# VulnScanX v1.1
 
 VulnScanX v2.0 is a versatile and user-friendly command-line application designed to assist developers and security professionals in identifying vulnerabilities in web applications. The tool primarily focuses on testing for three critical security vulnerabilities: Cross-Site Scripting (XSS), SQL Injection (SQLi), and Remote Code Execution (RCE).
 
