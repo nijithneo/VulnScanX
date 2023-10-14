@@ -4,6 +4,8 @@ import logging
 import sys
 import threading
 import hashlib
+import ssl
+import OpenSSL
 import shutil
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
@@ -89,6 +91,7 @@ def test_reflected_xss_payloads(url, payloads):
 
     except Exception as e:
         print_error(f"Error in test_reflected_xss_payloads: {e}")
+
 
 def test_dom_based_xss_payloads(url, payloads, browser):
     try:
@@ -293,6 +296,85 @@ def test_open_redirection_payloads(url, payloads):
     except Exception as e:
         print_error(f"Error: {e}")
 
+def test_clickjacking(url):
+    try:
+        headers = {
+            'Content-Security-Policy': 'frame-ancestors \'none\'',
+            'X-Frame-Options': 'deny',
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            if 'X-Frame-Options' in response.headers:
+                print_warning(f"URL: {url} - X-Frame-Options is set to {response.headers['X-Frame-Options']}. Clickjacking may be mitigated.")
+            elif 'Content-Security-Policy' in response.headers:
+                print_warning(f"URL: {url} - Content-Security-Policy is set. Clickjacking may be mitigated.")
+            else:
+                print_success(f"URL: {url} - No Clickjacking vulnerability detected.")
+        else:
+            print_warning(f"URL: {url} - Unexpected response status code: {response.status_code}")
+
+    except requests.exceptions.RequestException as e:
+        print_error(f"Error (requests): {e}")
+
+def test_api_security(api_url, api_key):
+    try:
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        }
+
+        # Test API input validation (change the payload and endpoint as needed)
+        payload = {'user_id': '1', 'username': 'admin', 'password': 'password123'}
+        response = requests.post(f'{api_url}/validate', json=payload, headers=headers)
+
+        if response.status_code == 200:
+            print_success(f"API Security Test (Input Validation) - Request accepted: {response.json()}")
+        else:
+            print_warning(f"API Security Test (Input Validation) - Request rejected. Status code: {response.status_code}")
+
+        # Test API authentication (change the endpoint as needed)
+        response = requests.get(f'{api_url}/secure', headers=headers)
+
+        if response.status_code == 200:
+            print_success(f"API Security Test (Authentication) - Authentication successful: {response.json()}")
+        else:
+            print_warning(f"API Security Test (Authentication) - Authentication failed. Status code: {response.status_code}")
+
+    except requests.exceptions.RequestException as e:
+        print_error(f"Error (requests): {e}")
+
+def test_ssl_tls_security(url):
+    try:
+        context = ssl.create_default_context()
+        connection = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=url)
+
+        connection.connect((url, 443))
+        certificate = connection.getpeercert()
+
+        # Check for outdated protocols
+        if 'SSL 2.0' in certificate['protocol']:
+            print_warning(f"SSL/TLS Security Check - Outdated Protocol: SSL 2.0 detected.")
+        if 'SSL 3.0' in certificate['protocol']:
+            print_warning(f"SSL/TLS Security Check - Outdated Protocol: SSL 3.0 detected.")
+
+        # Check for weak cipher suites
+        cipher_suite = certificate['cipher']
+        if 'RC4' in cipher_suite or 'MD5' in cipher_suite:
+            print_warning(f"SSL/TLS Security Check - Weak Cipher Suite detected: {cipher_suite}")
+
+        # Additional checks can be added as needed
+
+        print_success(f"SSL/TLS Security Check passed. No critical issues detected.")
+
+    except socket.error as e:
+        print_error(f"Error (socket): {e}")
+    except ssl.SSLError as e:
+        print_error(f"Error (SSL): {e}")
+    except Exception as e:
+        print_error(f"Error: {e}")
+
 def get_links_from_page(url):
     try:
         response = requests.get(url)
@@ -367,8 +449,10 @@ def main():
             print("5. Server-Side Template Injection (via requests)")
             print("6. Open Redirection (via requests)")
             print("7. Crawl and Test All")
-            print("8. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, 7, or 8): ")
+            print("8. Test Clickjacking")
+            print("9. Test API Security")
+            print("10. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, 7, 8, 9, or 10): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -402,10 +486,17 @@ def main():
                 url = input("Enter the base URL to start crawling and testing: ")
                 crawl_and_test_links(url, xss_payloads, sql_payloads, rce_payloads, ssti_payloads, open_redirection_payloads)
             elif choice == '8':
+                url = input("Enter the URL to test for Clickjacking: ")
+                test_clickjacking(url)
+            elif choice == '9':
+                api_url = input("Enter the base URL of the API: ")
+                api_key = input("Enter the API key: ")
+                test_api_security(api_url, api_key)
+            elif choice == '10':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, 7, or 8).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, 7, 8, 9, or 10).")
 
     except FileNotFoundError:
         print_error("One or more payload files not found.")
