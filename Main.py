@@ -7,24 +7,24 @@ import hashlib
 import ssl
 import OpenSSL
 import shutil
+from urllib.parse import urljoin
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
-from colorama import Fore, Style
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from colorama import Fore, Style
+from bs4 import BeautifulSoup
 
 
-# Set up logging
 logging.basicConfig(filename='vulnscanx_results.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
+
 def read_payloads_from_file(file_path):
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            payloads = f.readlines()
+        with open(file_path, 'r', encoding='utf-8') as file:
+            payloads = file.readlines()
         return [payload.strip() for payload in payloads]
     except FileNotFoundError:
         print(f"File not found: {file_path}")
@@ -32,9 +32,9 @@ def read_payloads_from_file(file_path):
 
 def read_banner():
     try:
-        with open('Config/Banner.txt', 'r', encoding='utf-8') as f:
-            banner = f.read()
-            return banner
+        with open('Config/Banner.txt', 'r', encoding='utf-8') as file:
+            banner = file.read()
+        return banner
     except FileNotFoundError:
         print("Banner file (Config/Banner.txt) not found.")
         return ""
@@ -55,7 +55,7 @@ def print_error(message):
 
 def test_reflected_xss_payloads(url, payloads):
     try:
-        num_threads = 5  # Number of threads to run concurrently (you can adjust this as needed)
+        num_threads = 10  # Number of threads to run concurrently (you can adjust this as needed)
         payloads_per_thread = len(payloads) // num_threads
 
         def test_payloads_thread(payloads, thread_id):
@@ -70,15 +70,15 @@ def test_reflected_xss_payloads(url, payloads):
                         response = requests.post(url, data=data)
 
                         if 'XSS' in response.text:
-                            print_success(f"URL: {url} - Payload: {payload} - XSS Found(via requests)")
+                            print(f"URL: {url} - Payload: {payload} - XSS Found(via requests)")
                         else:
-                            print_warning(f"URL: {url} - Payload: {payload} - No XSS (via requests)")
+                            print(f"URL: {url} - Payload: {payload} - No XSS (via requests)")
 
                     except requests.exceptions.RequestException as e:
-                        print_error(f"Error (requests): {e}")
+                        print(f"Error (requests): {e}")
 
             except Exception as e:
-                print_error(f"Error in test_payloads_thread: {e}")
+                print(f"Error in test_payloads_thread: {e}")
 
         threads = []
         for i in range(num_threads):
@@ -90,8 +90,7 @@ def test_reflected_xss_payloads(url, payloads):
             thread.join()
 
     except Exception as e:
-        print_error(f"Error in test_reflected_xss_payloads: {e}")
-
+        print(f"Error in test_reflected_xss_payloads: {e}")
 
 def test_dom_based_xss_payloads(url, payloads, browser):
     try:
@@ -127,7 +126,7 @@ def test_dom_based_xss_payloads(url, payloads, browser):
                             continue
 
                     if not element_found:
-                        print_warning(f"Payload: {payload} - Element not found (via {browser})")
+                        print(f"Payload: {payload} - Element not found (via {browser})")
                         continue
 
                     submit_button = driver.find_element(By.NAME, 'submitbutton')
@@ -138,24 +137,24 @@ def test_dom_based_xss_payloads(url, payloads, browser):
 
                     try:
                         if 'XSS' in driver.page_source:
-                            print_success(f"Payload: {payload} - DOM-based XSS FOUND! (via {browser})")
+                            print(f"Payload: {payload} - DOM-based XSS FOUND! (via {browser})")
                         else:
-                            print_warning(f"Payload: {payload} - No XSS (via {browser})")
+                            print(f"Payload: {payload} - No XSS (via {browser})")
                     except NoSuchElementException:
-                        print_warning(f"Payload: {payload} - Element not found (via {browser})")
+                        print(f"Payload: {payload} - Element not found (via {browser})")
 
                     # Print the page source to analyze the page structure
                     print(driver.page_source)
 
                 except WebDriverException as e:
-                    print_error(f"Error ({browser}): {e}")
+                    print(f"Error ({browser}): {e}")
                     break  # Exit the loop if any error occurs
 
         else:
-            print_error("Unsupported browser. Please select a supported browser.")
+            print("Unsupported browser. Please select a supported browser.")
 
     except Exception as e:
-        print_error(f"Error: {e}")
+        print(f"Error: {e}")
 
     finally:
         if driver:
@@ -318,63 +317,6 @@ def test_clickjacking(url):
     except requests.exceptions.RequestException as e:
         print_error(f"Error (requests): {e}")
 
-def test_api_security(api_url, api_key):
-    try:
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        }
-
-        # Test API input validation (change the payload and endpoint as needed)
-        payload = {'user_id': '1', 'username': 'admin', 'password': 'password123'}
-        response = requests.post(f'{api_url}/validate', json=payload, headers=headers)
-
-        if response.status_code == 200:
-            print_success(f"API Security Test (Input Validation) - Request accepted: {response.json()}")
-        else:
-            print_warning(f"API Security Test (Input Validation) - Request rejected. Status code: {response.status_code}")
-
-        # Test API authentication (change the endpoint as needed)
-        response = requests.get(f'{api_url}/secure', headers=headers)
-
-        if response.status_code == 200:
-            print_success(f"API Security Test (Authentication) - Authentication successful: {response.json()}")
-        else:
-            print_warning(f"API Security Test (Authentication) - Authentication failed. Status code: {response.status_code}")
-
-    except requests.exceptions.RequestException as e:
-        print_error(f"Error (requests): {e}")
-
-def test_ssl_tls_security(url):
-    try:
-        context = ssl.create_default_context()
-        connection = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=url)
-
-        connection.connect((url, 443))
-        certificate = connection.getpeercert()
-
-        # Check for outdated protocols
-        if 'SSL 2.0' in certificate['protocol']:
-            print_warning(f"SSL/TLS Security Check - Outdated Protocol: SSL 2.0 detected.")
-        if 'SSL 3.0' in certificate['protocol']:
-            print_warning(f"SSL/TLS Security Check - Outdated Protocol: SSL 3.0 detected.")
-
-        # Check for weak cipher suites
-        cipher_suite = certificate['cipher']
-        if 'RC4' in cipher_suite or 'MD5' in cipher_suite:
-            print_warning(f"SSL/TLS Security Check - Weak Cipher Suite detected: {cipher_suite}")
-
-        # Additional checks can be added as needed
-
-        print_success(f"SSL/TLS Security Check passed. No critical issues detected.")
-
-    except socket.error as e:
-        print_error(f"Error (socket): {e}")
-    except ssl.SSLError as e:
-        print_error(f"Error (SSL): {e}")
-    except Exception as e:
-        print_error(f"Error: {e}")
-
 def get_links_from_page(url):
     try:
         response = requests.get(url)
@@ -408,6 +350,7 @@ def crawl_and_test_links(base_url, xss_payloads, sql_payloads, rce_payloads, sst
                 test_remote_code_execution(link, rce_payloads, method='1')
                 test_open_redirection_payloads(link, open_redirection_payloads)
                 test_server_side_template_injection(link, ssti_payloads)
+                test_clickjacking(link)
 
                 crawl(link, depth + 1)
 
@@ -450,9 +393,8 @@ def main():
             print("6. Open Redirection (via requests)")
             print("7. Crawl and Test All")
             print("8. Test Clickjacking")
-            print("9. Test API Security")
-            print("10. Quit")
-            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, 7, 8, 9, or 10): ")
+            print("9. Quit")
+            choice = input("Enter your choice (1, 2, 3, 4, 5, 6, 7, 8, or 9): ")
 
             if choice == '1':
                 url = input("Enter the URL where Reflected XSS payload will be submitted: ")
@@ -489,14 +431,10 @@ def main():
                 url = input("Enter the URL to test for Clickjacking: ")
                 test_clickjacking(url)
             elif choice == '9':
-                api_url = input("Enter the base URL of the API: ")
-                api_key = input("Enter the API key: ")
-                test_api_security(api_url, api_key)
-            elif choice == '10':
                 print("Exiting VulnScanX. Goodbye!")
                 sys.exit(0)
             else:
-                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, 7, 8, 9, or 10).")
+                print_error("Invalid choice. Please enter a valid option (1, 2, 3, 4, 5, 6, 7, 8, or 9).")
 
     except FileNotFoundError:
         print_error("One or more payload files not found.")
